@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import PyPDF2
 
 app = Flask(__name__)
 
@@ -20,9 +21,16 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_DIR'], file.filename)
         file.save(filepath)
 
-        # wip
-
-        return jsonify({"message": "file uploaded successfully", "filename": file.filename})
+        text = ""
+        try:
+            with open(filepath, "rb") as f:
+                reader = PyPDF2.PdfReader(f)
+                for page in reader.pages:
+                    text += page.extract_text()
+            return jsonify({"extracted text": text})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+            
 
 
 if __name__ == '__main__':
