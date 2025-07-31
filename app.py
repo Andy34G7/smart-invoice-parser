@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 import os
 import PyPDF2
+import pytesseract
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -22,15 +24,26 @@ def upload_file():
         file.save(filepath)
 
         text = ""
-        try:
-            with open(filepath, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                for page in reader.pages:
-                    text += page.extract_text()
-            return jsonify({"extracted text": text})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-            
+        if file.filename.lower().endswith('.pdf'):
+            try:
+                with open(filepath, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    for page in reader.pages:
+                        text += page.extract_text()
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        
+        elif file.filename.lower().in_(['.png', '.jpg', '.jpeg']):
+            try:
+                text = pytesseract.image_to_string(Image.open(filepath))
+            except Exception as e:
+                return jsonify({"error": "OCR processing failed", "details": str(e)}), 500
+        
+        else:
+            return jsonify({"error": "Unsupported file type"}), 400
+        
+        parsed_data = "" #need to implement parsing
+        return jsonify(parsed_data)
 
 
 if __name__ == '__main__':
