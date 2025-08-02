@@ -2,3 +2,5 @@ PyPDF2
 Flask
 pytesseract
 pillow
+python-dateutil
+re
