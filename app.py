@@ -5,6 +5,46 @@ import pytesseract
 from PIL import Image
 import re
 from dateutil.parser import parse
+import sqlite3
+
+def setup_database(db_name="invoices.db"):
+    """Creates the database and the invoices table."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_path TEXT UNIQUE,
+        vendor_name TEXT,
+        invoice_date TEXT,
+        total_amount REAL,
+        processing_tier TEXT,
+        status TEXT,
+        extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    conn.commit()
+    conn.close()
+    print("Database setup complete.")
+
+def save_to_db(data, db_name="invoices.db"):
+    """Saves or updates a record of extracted data to the SQLite database."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO invoices (file_path, vendor_name, invoice_date, total_amount, processing_tier, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        data.get("file_path"),
+        data.get("vendor_name"),
+        data.get("invoice_date"),
+        data.get("total_amount"),
+        data.get("processing_tier"),
+        data.get("status", "SUCCESS")
+    ))
+    conn.commit()
+    conn.close()
+    print(f"'{data.get('file_path')}' saved to db using {data.get('processing_tier')}.")
 
 
 def clean_amount(amount_str):
@@ -145,6 +185,8 @@ app.config['UPLOAD_DIR'] = UPLOAD_DIR
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
+setup_database()
+
 @app.route('/upload', methods = ['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -175,8 +217,8 @@ def upload_file():
         else:
             return jsonify({"error": "Unsupported file type"}), 400
         
-        parsed_data = process_invoice(text) #need to implement parsing
-        return jsonify(parsed_data)
+        parsed_data = process_invoice(text)
+        return save_to_db(parsed_data)
 
 
 if __name__ == '__main__':

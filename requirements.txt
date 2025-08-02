@@ -4,3 +4,7 @@ pytesseract
 pillow
 python-dateutil
 re
+transformers[torch]
+sentencepiece
+timm
+python-doctr
