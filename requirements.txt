@@ -3,8 +3,7 @@ Flask
 pytesseract
 pillow
 python-dateutil
-re
 transformers[torch]
-sentencepiece
-timm
 python-doctr
+requests
+python-dotenv
