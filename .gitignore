@@ -210,3 +210,5 @@ __marimo__/
 invoices/*
 invoices
 invoices.db
+
+uploads/*

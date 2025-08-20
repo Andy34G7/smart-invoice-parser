@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Invoice Parser</title>
+    <script src="/static/js/script.js" defer></script>
+</head>
+<body>
+    <h1>Smart Invoice Parser</h1>
+    
+    <form id="invoiceForm" enctype="multipart/form-data">
+        <p>
+            <label for="file">Choose Invoice File:</label><br>
+            <input type="file" id="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+        </p>
+        
+        <p>
+            <button type="submit">Upload and Process</button>
+        </p>
+    </form>
+    
+    <div id="error" style="display: none; color: red;"></div>
+    
+    <div id="results" style="display: none;">
+        <h2>Extracted Information</h2>
+        <div id="resultsContent"></div>
+    </div>
+</body>
+</html>
