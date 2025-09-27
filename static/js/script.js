@@ -208,7 +208,7 @@ function displayResults(data) {
             
             // Special formatting for processing tier
             if (key === 'processing_tier' && value) {
-                displayValue = `${value} ${getTierIcon(value)}`;
+                displayValue = value;
             }
             
             cell2.innerHTML = displayValue;
