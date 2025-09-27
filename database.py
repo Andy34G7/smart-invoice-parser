@@ -18,7 +18,8 @@ def setup_database(db_name: str = "invoices.db"):
             processing_tier TEXT,
             status TEXT,
             extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            filename TEXT
+            filename TEXT,
+            verified BOOLEAN DEFAULT FALSE
         )
         """
     )
@@ -28,7 +29,8 @@ def setup_database(db_name: str = "invoices.db"):
         "filename": "ALTER TABLE invoices ADD COLUMN filename TEXT",
         "invoice_number": "ALTER TABLE invoices ADD COLUMN invoice_number TEXT",
         "vendor_gstin": "ALTER TABLE invoices ADD COLUMN vendor_gstin TEXT",
-        "customer_gstin": "ALTER TABLE invoices ADD COLUMN customer_gstin TEXT"
+        "customer_gstin": "ALTER TABLE invoices ADD COLUMN customer_gstin TEXT",
+        "verified": "ALTER TABLE invoices ADD COLUMN verified BOOLEAN DEFAULT FALSE"
     }
     for col, stmt in wanted.items():
         if col not in existing_cols:
@@ -45,7 +47,8 @@ def save_to_db(data: Dict[str, Any], db_name: str = "invoices.db"):
     if not data.get("file_path"):
         print("Cannot save record without file_path")
         return
-    filename = data.get("file_path").split('/')[-1]
+    file_path = data.get("file_path")
+    filename = file_path.split('/')[-1] if file_path else None
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
     cursor.execute(
@@ -88,3 +91,31 @@ def get_result_by_filename(filename: str, db_name: str = "invoices.db"):
     result = cursor.fetchone()
     conn.close()
     return dict(result) if result else None
+
+def upsert_verified_data(filename: str, verified_data: Dict[str, Any], db_name: str = "invoices.db"):
+    """Update invoice data with verified information and mark as verified"""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    
+    # Update the record with verified data
+    cursor.execute(
+        """
+        UPDATE invoices 
+        SET vendor_name=?, invoice_number=?, invoice_date=?, total_amount=?, 
+            vendor_gstin=?, customer_gstin=?, verified=TRUE
+        WHERE filename=?
+        """,
+        (
+            verified_data.get("vendor_name"),
+            verified_data.get("invoice_number"),
+            verified_data.get("invoice_date"),
+            verified_data.get("total_amount"),
+            verified_data.get("vendor_gstin"),
+            verified_data.get("customer_gstin"),
+            filename
+        )
+    )
+    
+    conn.commit()
+    conn.close()
+    print(f"Updated verified data for: {filename}")
