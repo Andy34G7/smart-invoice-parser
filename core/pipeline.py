@@ -17,16 +17,16 @@ def get_next_tier(current_tier: Optional[str]) -> Optional[str]:
             'Regex': 'Regex+DocTR',
             'Regex+DocTR': 'Text_QA',
             'Text_QA': 'LLM',
-            'LLM': None  # No next tier after LLM
+            'LLM': None 
         }
     else:
-        # Skip Text_QA entirely when disabled
+        
         tier_hierarchy = {
             None: 'RegexOnly',
             'RegexOnly': 'Regex+DocTR', 
             'Regex': 'Regex+DocTR',
-            'Regex+DocTR': 'LLM',  # Skip directly to LLM
-            'LLM': None  # No next tier after LLM
+            'Regex+DocTR': 'LLM',  
+            'LLM': None  
         }
     
     return tier_hierarchy.get(current_tier)
@@ -36,8 +36,8 @@ def get_alternative_tier(current_tier: Optional[str]) -> Optional[str]:
     if not current_tier:
         return None
     alternatives = {
-        'Regex+DocTR': 'LLM',  # Skip Text_QA if it's problematic
-        'Text_QA': None  # No alternative after Text_QA
+        'Regex+DocTR': 'LLM',  
+        'Text_QA': None  
     }
     return alternatives.get(current_tier)
 
@@ -74,7 +74,6 @@ def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> O
         else:
             combined_text = original_text
         
-        # Process with regex and merge with DocTR
         heuristic = process_invoice_regex(combined_text)
         from .merge import merge_tier1_tier2
         result = merge_tier1_tier2(heuristic, doctr_data)
@@ -83,7 +82,6 @@ def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> O
             return result
     
     elif target_tier == 'Text_QA':
-        # First get combined text (like in Regex+DocTR)
         doctr_data: Dict[str, Any] = {}
         doctr_text = ''
         try:
@@ -104,7 +102,6 @@ def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> O
         else:
             combined_text = original_text
         
-        # Use QA processing with fallback
         qa_source_parts = [combined_text]
         try:
             result = process_with_text_qa('\n'.join(qa_source_parts))
@@ -119,7 +116,6 @@ def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> O
             return None
     
     elif target_tier == 'LLM':
-        # First get combined text (like in other tiers)
         doctr_data: Dict[str, Any] = {}
         doctr_text = ''
         try:
@@ -140,7 +136,6 @@ def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> O
         else:
             combined_text = original_text
         
-        # Use LLM processing
         result = process_with_llm(combined_text)
         if result:
             result['processing_tier'] = 'LLM'

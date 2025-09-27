@@ -2,27 +2,64 @@
 <html>
 <head>
     <title>Smart Invoice Parser</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="/static/js/script.js" defer></script>
 </head>
 <body>
-    <h1>Smart Invoice Parser</h1>
-    
-    <form id="invoiceForm" enctype="multipart/form-data">
-        <p>
-            <label for="file">Choose Invoice File:</label><br>
-            <input type="file" id="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
-        </p>
+    <div class="container">
+        <h1>Smart Invoice Parser</h1>
         
-        <p>
-            <button type="submit">Upload and Process</button>
-        </p>
-    </form>
-    
-    <div id="error" style="display: none; color: red;"></div>
-    
-    <div id="results" style="display: none;">
-        <h2>Extracted Information</h2>
-        <div id="resultsContent"></div>
+        <form id="invoiceForm" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="file">Choose Invoice File:</label>
+                <input type="file" id="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit">Upload and Process</button>
+            </div>
+        </form>
+        
+        <div id="error" class="error-message"></div>
+        
+        <div id="mainContent" class="main-content">
+            <div class="left-panel">
+                <div id="results" class="results-section">
+                    <h2>Extracted Information</h2>
+                    <div id="resultsContent"></div>
+                    <div id="verifySection" class="verify-section">
+                        <button id="retryBtn" class="retry-button">Retry Parsing</button>
+                        <button id="verifyBtn" class="verify-button">Verified</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div id="pdfPreview" class="pdf-preview">
+                    <h3>Document Preview</h3>
+                    <div id="pdfContainer">
+                        <div class="pdf-canvas-container">
+                            <canvas id="pdfCanvas"></canvas>
+                        </div>
+                        <div id="pdfControls" class="pdf-controls">
+                            <button id="prevPage">Previous</button>
+                            <span id="pageInfo">Page 1 of 1</span>
+                            <button id="nextPage">Next</button>
+                            <div class="zoom-controls">
+                                <button id="zoomOut">-</button>
+                                <span id="zoomLevel" class="zoom-level">100%</span>
+                                <button id="zoomIn">+</button>
+                                <button id="fitWidth">Fit Width</button>
+                                <button id="fitHeight">Fit Height</button>
+                                <button id="resetZoom">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>
