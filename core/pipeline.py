@@ -1,10 +1,152 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .ocr import process_with_doctr
 from .regex_extract import process_invoice_regex
 from .qa import process_with_text_qa
 from .llm import process_with_llm
 from .utils import has_any_field, is_company_like_line
 from database import save_to_db
+
+def get_next_tier(current_tier: Optional[str]) -> Optional[str]:
+    """Determine the next processing tier based on the current tier"""
+    from .config import ENABLE_TEXT_QA
+    
+    if ENABLE_TEXT_QA:
+        tier_hierarchy = {
+            None: 'RegexOnly',
+            'RegexOnly': 'Regex+DocTR', 
+            'Regex': 'Regex+DocTR',
+            'Regex+DocTR': 'Text_QA',
+            'Text_QA': 'LLM',
+            'LLM': None  # No next tier after LLM
+        }
+    else:
+        # Skip Text_QA entirely when disabled
+        tier_hierarchy = {
+            None: 'RegexOnly',
+            'RegexOnly': 'Regex+DocTR', 
+            'Regex': 'Regex+DocTR',
+            'Regex+DocTR': 'LLM',  # Skip directly to LLM
+            'LLM': None  # No next tier after LLM
+        }
+    
+    return tier_hierarchy.get(current_tier)
+
+def get_alternative_tier(current_tier: Optional[str]) -> Optional[str]:
+    """Get an alternative tier if the standard next tier fails"""
+    if not current_tier:
+        return None
+    alternatives = {
+        'Regex+DocTR': 'LLM',  # Skip Text_QA if it's problematic
+        'Text_QA': None  # No alternative after Text_QA
+    }
+    return alternatives.get(current_tier)
+
+def run_specific_tier(image_path: str, text_content: str, target_tier: str) -> Optional[Dict[str, Any]]:
+    """Run a specific processing tier"""
+    original_text = text_content or ''
+    
+    if target_tier == 'RegexOnly':
+        result = process_invoice_regex(original_text)
+        if result:
+            result['processing_tier'] = 'RegexOnly'
+            return result
+    
+    elif target_tier == 'Regex+DocTR':
+        # Get DocTR OCR data
+        doctr_data: Dict[str, Any] = {}
+        doctr_text = ''
+        try:
+            doctr_data = process_with_doctr(image_path) or {}
+            doctr_text = doctr_data.get('raw_text', '') or ''
+        except Exception:
+            pass
+        
+        # Combine texts
+        if doctr_text:
+            combined_lines = []
+            seen = set()
+            for ln in (original_text.splitlines() + doctr_text.splitlines()):
+                k = ln.strip()
+                if k and k not in seen:
+                    seen.add(k)
+                    combined_lines.append(ln)
+            combined_text = '\n'.join(combined_lines)
+        else:
+            combined_text = original_text
+        
+        # Process with regex and merge with DocTR
+        heuristic = process_invoice_regex(combined_text)
+        from .merge import merge_tier1_tier2
+        result = merge_tier1_tier2(heuristic, doctr_data)
+        if result:
+            result['processing_tier'] = 'Regex+DocTR'
+            return result
+    
+    elif target_tier == 'Text_QA':
+        # First get combined text (like in Regex+DocTR)
+        doctr_data: Dict[str, Any] = {}
+        doctr_text = ''
+        try:
+            doctr_data = process_with_doctr(image_path) or {}
+            doctr_text = doctr_data.get('raw_text', '') or ''
+        except Exception:
+            pass
+        
+        if doctr_text:
+            combined_lines = []
+            seen = set()
+            for ln in (original_text.splitlines() + doctr_text.splitlines()):
+                k = ln.strip()
+                if k and k not in seen:
+                    seen.add(k)
+                    combined_lines.append(ln)
+            combined_text = '\n'.join(combined_lines)
+        else:
+            combined_text = original_text
+        
+        # Use QA processing with fallback
+        qa_source_parts = [combined_text]
+        try:
+            result = process_with_text_qa('\n'.join(qa_source_parts))
+            if result and has_any_field(result):
+                result['processing_tier'] = 'Text_QA'
+                return result
+            else:
+                print("Text_QA didn't extract useful data, will fall back to LLM on next retry")
+                return None
+        except Exception as e:
+            print(f"Text_QA processing failed: {e}")
+            return None
+    
+    elif target_tier == 'LLM':
+        # First get combined text (like in other tiers)
+        doctr_data: Dict[str, Any] = {}
+        doctr_text = ''
+        try:
+            doctr_data = process_with_doctr(image_path) or {}
+            doctr_text = doctr_data.get('raw_text', '') or ''
+        except Exception:
+            pass
+        
+        if doctr_text:
+            combined_lines = []
+            seen = set()
+            for ln in (original_text.splitlines() + doctr_text.splitlines()):
+                k = ln.strip()
+                if k and k not in seen:
+                    seen.add(k)
+                    combined_lines.append(ln)
+            combined_text = '\n'.join(combined_lines)
+        else:
+            combined_text = original_text
+        
+        # Use LLM processing
+        result = process_with_llm(combined_text)
+        if result:
+            result['processing_tier'] = 'LLM'
+            return result
+    
+    return None
 
 def is_output_valid(data):
     if not isinstance(data, dict):

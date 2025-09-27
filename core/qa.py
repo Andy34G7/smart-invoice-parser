@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from transformers import pipeline
+from transformers.pipelines import pipeline
 from .config import QA_MODEL, GSTIN_REGEX
 from .utils import parse_date_str, clean_amount, is_company_like_line, normalize_invoice_number
 
@@ -32,7 +32,11 @@ def process_with_text_qa(text: str) -> Dict[str, Any]:
         try:
             ctx = text[:12000]
             result = qa(question=q, context=ctx)
-            ans = result.get("answer")
+            # Handle transformers pipeline result properly
+            if isinstance(result, dict) and "answer" in result:
+                ans = result["answer"]
+            else:
+                continue
             if ans and ans.lower() not in {"", "n/a", "none", "no"}:
                 answers[field] = ans.strip()
         except Exception:
