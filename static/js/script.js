@@ -336,6 +336,7 @@ async function handleRetryParsing() {
     }
 }
 
+// use pdfViewerEnabled, if yes use default pdf viewer else this - node js alone limits.
 async function loadFilePreview(filename) {
     const fileExtension = filename.split('.').pop().toLowerCase();
     
