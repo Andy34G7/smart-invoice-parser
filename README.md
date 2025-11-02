@@ -132,11 +132,3 @@ ENABLE_TEXT_QA=false  # Set to true to enable Text_QA processing tier
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is part of Comono India Internal repositories.
-
-## Support
-
-For support and questions, please contact the development team or create an issue in the repository.
